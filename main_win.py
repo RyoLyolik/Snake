@@ -9,38 +9,22 @@ clock = pygame.time.Clock()
 screen = pygame.display.set_mode(size, pygame.RESIZABLE)
 
 
-class Win:
+class Drawing:
     def __init__(self):
-        self.event = True
-        self.grid = Grid()
-        self.grid.create_food()
-        self.snake = Snake()
-        self.e = EventsHandling(snake=self.snake, grid=self.grid)
+        pass
 
-        self.screen_updates()
+    def drawing(self, **kwargs):
+            screen.fill((50,50,50))
 
-    def screen_updates(self):
-        while self.event:
-            clock.tick(60)
-            for e in pygame.event.get():
-                if e.type == pygame.QUIT:
-                    self.event = False
-
-                if e.type == pygame.MOUSEBUTTONDOWN:
-                    print(self.grid.get_by_pos(pygame.mouse.get_pos()))
-
-            screen.fill((255,255,255))
-
-            self.e.key_events()
-            self.grid.draw()
-            self.snake.draw()
+            for obj in kwargs:
+                kwargs[obj].draw()
 
             pygame.display.flip()
 
 class Snake:
     def __init__(self):
         self.pos_head = [random.choice(range(10,w//k-10)), random.choice(range(10,h//k-10))]
-        self.body=[[self.pos_head[0]-1,self.pos_head[1]]]
+        self.body=[[self.pos_head[0]-1,self.pos_head[1]],[self.pos_head[0]-2,self.pos_head[1]]]
         self.length = len(self.body)+1
         self.speedx = 0
         self.speedy = 0
@@ -56,9 +40,9 @@ class Snake:
 
 
     def draw(self):
-        pygame.draw.rect(screen,(255,155,255), (self.pos_head[0]*k, self.pos_head[1]*k, k, k))
         for part in self.body:
-            pygame.draw.rect(screen, (100, 155, 255), (part[0] * k, part[1] * k, k, k))
+            pygame.draw.rect(screen, (90, 140, 230), (part[0] * k, part[1] * k, k, k))
+        pygame.draw.rect(screen, (230, 140, 230), (self.pos_head[0] * k, self.pos_head[1] * k, k, k))
 
 
 
@@ -68,15 +52,15 @@ class Grid:
 
     def draw(self):
         for column in range(w//k):
-            pygame.draw.line(screen,(0,0,0), (column*k, 0), (column*k, h), 1)
+            pygame.draw.line(screen,(80,80,80), (column*k, 0), (column*k, h), 1)
 
         for row in range(w//k):
-            pygame.draw.line(screen,(0,0,0), (0, row*k), (w, row*k), 1)
+            pygame.draw.line(screen,(80,80,80), (0, row*k), (w, row*k), 1)
 
         for column in range(len(self.grid)):
             for row in range(len(self.grid[column])):
                 if self.grid[column][row] == 1:
-                    pygame.draw.rect(screen,(255,30,27), (column*k+k//4, row*k+k//4, k//2,k//2))
+                    pygame.draw.rect(screen,(205,30,27), (column*k+k//4, row*k+k//4, k//2,k//2))
 
     def get_by_pos(self, pos):
         return pos[0]//k, pos[1] // k
@@ -87,48 +71,68 @@ class Grid:
 
         self.grid[y][x] = 1
 
-class EventsHandling:
-    def __init__(self, **kwargs):
-        print(kwargs)
-        self.kwargs = kwargs
+class Controller:
+    def __init__(self):
         self.move_cnt = 0
+        self.event = True
+        self.grid = Grid()
+        self.grid.create_food()
+        self.snake = Snake()
+        self.canvas = Drawing()
+
+        self.update()
+
+    def update(self):
+        while self.event:
+            clock.tick(60)
+            for e in pygame.event.get():
+                if e.type == pygame.QUIT:
+                    self.event = False
+
+                if e.type == pygame.MOUSEBUTTONDOWN:
+                    print(self.grid.get_by_pos(pygame.mouse.get_pos()))
+
+            self.key_events()
+            self.events_handling()
+
+            self.canvas.drawing(snake=self.snake, grid=self.grid)
+
+    def events_handling(self):
+        self.move_cnt += 1
+        if self.move_cnt >= 6:
+            self.snake.move()
+            self.move_cnt = 0
+
+        for column in range(len(self.grid.grid)):
+            for row in range(len(self.grid.grid[column])):
+                if self.grid.grid[column][row] == 1 and self.snake.pos_head == [column,row]:
+                    self.snake.body.append(self.snake.body[-1])
+                    self.grid.grid[column][row] = 0
+                    self.grid.create_food()
+
+
+        if self.snake.pos_head in self.snake.body or (self.snake.pos_head[0] >= w//k or self.snake.pos_head[0] < 0 or self.snake.pos_head[1] >= h//k or self.snake.pos_head[1] < 0):
+            print('Your score:',self.snake.length-3)
+            return self.__init__()
+
 
     def key_events(self, e=None):
-        if 'snake' in self.kwargs:
-            snake = self.kwargs['snake']
-            if pygame.key.get_pressed()[pygame.K_a]:
-                snake.speedx = -1
-                snake.speedy = 0
+        if pygame.key.get_pressed()[pygame.K_a] and self.snake.speedx != 1:
+            self.snake.speedx = -1
+            self.snake.speedy = 0
 
-            if pygame.key.get_pressed()[pygame.K_d]:
-                snake.speedx = 1
-                snake.speedy = 0
+        elif pygame.key.get_pressed()[pygame.K_d] and self.snake.speedx != -1:
+            self.snake.speedx = 1
+            self.snake.speedy = 0
 
-            if pygame.key.get_pressed()[pygame.K_s]:
-                snake.speedy = 1
-                snake.speedx = 0
+        elif pygame.key.get_pressed()[pygame.K_s] and self.snake.speedy != -1:
+            self.snake.speedy = 1
+            self.snake.speedx = 0
 
-            if pygame.key.get_pressed()[pygame.K_w]:
-                snake.speedy = -1
-                snake.speedx = 0
-
-            if self.move_cnt >= 6:
-                snake.move()
-                self.move_cnt = 0
-
-            self.move_cnt += 1
-
-            if 'grid' in self.kwargs:
-                grid = self.kwargs['grid']
-
-                for column in range(len(grid.grid)):
-                    for row in range(len(grid.grid[column])):
-                        if grid.grid[column][row] == 1 and snake.pos_head == [column,row]:
-                            snake.body.append(snake.body[-1])
-                            grid.grid[column][row] = 0
-                            grid.create_food()
-
+        elif pygame.key.get_pressed()[pygame.K_w] and self.snake.speedy != 1:
+            self.snake.speedy = -1
+            self.snake.speedx = 0
 
 
 if __name__=='__main__':
-    win = Win()
+    app = Controller()
