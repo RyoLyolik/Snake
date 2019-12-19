@@ -3,6 +3,7 @@ import random
 import msvcrt as m
 import json
 import math
+import time
 
 pygame.init()
 
@@ -45,12 +46,17 @@ class Drawing:
 
 class Snake:
     def __init__(self):
-        self.pos_head = [random.choice(range(5, w // k - 10)), random.choice(range(5, h // k - 10))]
-        self.body = [[self.pos_head[0] - 1, self.pos_head[1]], [self.pos_head[0] - 2, self.pos_head[1]],
-                     [self.pos_head[0] - 3, self.pos_head[1]], [self.pos_head[0] - 4, self.pos_head[1]]]
+        self.pos_head = [random.choice(range(10,40)), random.choice(range(10,40))]
+
+        self.body = [[self.pos_head[0], self.pos_head[1]+1],[self.pos_head[0], self.pos_head[1]+2],[self.pos_head[0], self.pos_head[1]+3],[self.pos_head[0], self.pos_head[1]+4]]
+
+        # self.pos_head = [random.choice(range(5, w // k - 10)), random.choice(range(5, h // k - 10))]
+        # self.body = [[self.pos_head[0] - 1, self.pos_head[1]], [self.pos_head[0] - 2, self.pos_head[1]],
+        #              [self.pos_head[0] - 3, self.pos_head[1]], [self.pos_head[0] - 4, self.pos_head[1]]]
+
         self.length = len(self.body) + 1
-        self.speedx = 1
-        self.speedy = 0
+        self.speedx = 0
+        self.speedy = 1
         self.score = 0
         self.k = 1
         file = open('dnk.json', mode='r')
@@ -75,7 +81,10 @@ class Snake:
             self.near_let = [
                 [[0, 0, 0, 0, 0] for i in
                  range(11)] for j in range(11)]
-
+            self.near_let[5][4] = [-100, 0, 0, 0, 0]
+            self.near_let[5][6] = [0, -100, 0, 0, 0]
+            self.near_let[4][5] = [0, 0, -100, 0, 0]
+            self.near_let[6][5] = [0, 0, 0, -100, 0]
 
         else:
             self.near_let = json.loads(self.near_let)
@@ -93,6 +102,12 @@ class Snake:
                 [[0, 0, 0, 0, 0] for i in
                  range(11)] for j in range(11)]
 
+            self.near_me[5][4] = [-100, 0, 0, 0, 0]
+            self.near_me[5][6] = [0, -100, 0, 0, 0]
+            self.near_me[4][5] = [0, 0, -100, 0, 0]
+            self.near_me[6][5] = [0, 0, 0, -100, 0]
+
+
         else:
             self.near_me = json.loads(self.near_me)
 
@@ -102,7 +117,7 @@ class Snake:
         self.near_me[6][5] = [0, 0, 0, -10000, 0]
 
         self.near_let[5][4] = [-10000, 0, 0, 0, 0]
-        self.near_let[5][6] = [0, -1000, 0, 0, 0]
+        self.near_let[5][6] = [0, -10000, 0, 0, 0]
         self.near_let[4][5] = [0, 0, -10000, 0, 0]
         self.near_let[6][5] = [0, 0, 0, -10000, 0]
 
@@ -111,7 +126,7 @@ class Snake:
 
     def move(self):
         if not self.died:
-
+            self.time = 0
             self.time += 1
             self.length = len(self.body) + 1
             if self.length > 1 and (self.speedx != 0 or self.speedy != 0):
@@ -181,16 +196,22 @@ class Snake:
                         w += j[2]
                         s += j[3]
 
-            if a > d and a > w and a > s:
+            # print(w,a,s,d)
+
+            if a >= d and a >= w and a >= s:
+                # print('a')
                 return 'a'
 
-            elif d > a and d > w and d > s:
+            elif d >= a and d >= w and d >= s:
+                # print('d')
                 return 'd'
 
-            elif w > a and w > d and w > s:
+            elif w >= a and w >= d and w >= s:
+                # print('w')
                 return 'w'
 
-            elif s > a and s > d and s > w:
+            elif s >= a and s >= d and s >= w:
+                # print('s')
                 return 's'
 
             else:
@@ -252,6 +273,11 @@ class Grid:
 
                 if x == 0 and y == 0:
                     scan_res[5][5] = 5
+
+        # for i in scan_res:
+        #     print(i)
+        # print()
+
         return scan_res
 
 
@@ -262,7 +288,7 @@ class Controller:
         self.event = True
         self.grid = Grid()
         self.grid.create_food()
-        self.snakes = [Snake() for i in range(10)]
+        self.snakes = [Snake() for _ in range(10)] # SNAKES COUNT
         self.canvas = Drawing()
         self.cnt = 0
         self.continiue = True
@@ -277,7 +303,7 @@ class Controller:
         best_let = self.snakes[0].near_let
         best_me = self.snakes[0].near_me
         while self.event:
-            clock.tick(300)
+            clock.tick(100)
             comp = sorted(self.snakes, key=lambda x: x.score)[-1]
             if self.mx < comp.score:
                 self.mx = comp.score
@@ -286,17 +312,18 @@ class Controller:
                 best_let = comp.near_let
                 best_me = comp.near_me
 
-                file = open('dnk.json', mode='w')
-                file.writelines(str(best_let))
-                file.close()
 
-                file = open('dnk2.json', mode='w')
-                file.writelines(str(best_food))
-                file.close()
-
-                file = open('dnk3.json', mode='w')
-                file.writelines(str(best_me))
-                file.close()
+                # file = open('dnk.json', mode='w')
+                # file.writelines(str(best_let))
+                # file.close()
+                #
+                # file = open('dnk2.json', mode='w')
+                # file.writelines(str(best_food))
+                # file.close()
+                #
+                # file = open('dnk3.json', mode='w')
+                # file.writelines(str(best_me))
+                # file.close()
 
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
@@ -324,16 +351,14 @@ class Controller:
                         self.snake.near_me[j][i][4] = nr[j][i]
 
                 ch = self.snake.do_choice()
+
                 self.snake.train(ch, False)
 
                 self.events_handling()
 
             self.canvas.drawing(snake=self.snakes, grid=self.grid)
 
-            # self.events_handling()
-            # self.canvas.drawing(snake=self.snake, grid=self.grid)
-            # ch = self.snake.do_choice()
-            # self.snake.train(ch, False)
+            # time.sleep(5)
 
     def events_handling(self):
         # self.move_cnt += 1
@@ -358,7 +383,7 @@ class Controller:
                         self.snake.body.append(self.snake.body[-1])
                     self.grid.grid[column][row] = 0
                     self.grid.food_on_grid -= 1
-                    self.snake.lifes = 100
+                    self.snake.lifes = 180
                     self.snake.score += 1
 
                 if self.grid.grid[column][row] == 1:
@@ -369,115 +394,14 @@ class Controller:
             1] >= h // k or
                 self.snake.pos_head[1] < 0) or self.grid.grid[self.snake.pos_head[0]][
             self.snake.pos_head[1]] == 2 or self.snake.lifes <= 0:
-            if (len(self.snakes) < 5 and self.snake.score > self.mx / 2) or len(self.snakes) == 0:
-                new_snake = Snake()
-                new_snake.near_let = self.snake.near_let
-                new_snake.near_let[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-                new_snake.near_let[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-                new_snake.near_let[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-
-                new_snake.near_food = self.snake.near_food
-                new_snake.near_food[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-                new_snake.near_food[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-                new_snake.near_food[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-
-                new_snake.near_me = self.snake.near_me
-                new_snake.near_me[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-                new_snake.near_me[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-                new_snake.near_me[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-                new_snake.time = 0
-                new_snake.lifes = 100
-                self.snakes.append(new_snake)
-            elif self.snake.score >= self.mx / 1.5:
-                new_snake = Snake()
-                new_snake.near_let = self.snake.near_let
-                new_snake.near_let[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-
-                new_snake.near_food = self.snake.near_food
-                new_snake.near_food[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-
-                new_snake.near_me = self.snake.near_me
-                new_snake.near_me[random.choice(range(len(new_snake.near_let)))][
-                    random.choice(range(len(new_snake.near_let[0])))][
-                    random.choice(range(0, 3))] += random.choice(range(-5, 5))
-                new_snake.time = 0
-                new_snake.lifes = 100
-                self.snakes.append(new_snake)
-            self.snake.died = True
-            self.snake.body = []
             self.snakes.remove(self.snake)
-
+            self.snakes.append(Snake())
 
         # if self.sc_cnt >= 5000 and self.snake.length <= 10:
         #     file = open('dnk.json', mode='w')
         #     file.writelines(str(self.snake.near))
         #     file.close()
         #     return self.__init__()
-
-        elif self.snake.length >= 16 and len(self.snakes) < 50:
-            new = self.snake.body[5:-1]
-            new_head = self.snake.body[-1]
-            self.snake.body = self.snake.body[:-5]
-            self.snake.length = len(self.snake.body)
-
-            new_snake = Snake()
-            new_snake.body = new
-            new_snake.pos_head = new_head
-            new_snake.length = len(new)
-            new_snake.near_let = self.snake.near_let
-            new_snake.near_let[random.choice(range(len(new_snake.near_let)))][
-                random.choice(range(len(new_snake.near_let[0])))][
-                random.choice(range(0, 3))] += random.choice(range(-10, 10))
-
-            new_snake.near_food = self.snake.near_food
-            new_snake.near_food[random.choice(range(len(new_snake.near_let)))][
-                random.choice(range(len(new_snake.near_let[0])))][
-                random.choice(range(0, 3))] += random.choice(range(-10, 10))
-
-            new_snake.near_me = self.snake.near_me
-            new_snake.near_me[random.choice(range(len(new_snake.near_let)))][
-                random.choice(range(len(new_snake.near_let[0])))][
-                random.choice(range(0, 3))] += random.choice(range(-10, 10))
-            new_snake.speedy = -self.snake.speedy
-            new_snake.speedx *= -self.snake.speedx
-            new_snake.time = 0
-            new_snake.lifes = 100
-            self.snake.lifes = 100
-            self.snakes.append(new_snake)
-
-        if len(self.snakes) <= 1:
-            self.snakes.append(Snake())
-            self.snakes.append(Snake())
-            self.snakes.append(Snake())
-            self.snakes.append(Snake())
-            self.snakes.append(Snake())
-            self.snakes.append(Snake())
-            self.snakes.append(Snake())
-            self.snakes.append(Snake())
-            self.snakes.append(Snake())
-            self.snakes.append(Snake())
 
         self.grid.food_on_grid = self.food_again
 
